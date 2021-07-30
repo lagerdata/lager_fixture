@@ -1,6 +1,6 @@
 import queue
 import serial
-from simple_hdlc import HDLC
+from .simple_hdlc import HDLC
 
 ACK = 0x01
 NACK = 0x02

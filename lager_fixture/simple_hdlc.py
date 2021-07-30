@@ -7,7 +7,7 @@ import logging
 import struct
 import time
 from threading import Thread
-from PyCRC.CRCCCITT import CRCCCITT
+from .PyCRC.CRCCCITT import CRCCCITT
 
 
 logger = logging.getLogger(__name__)
