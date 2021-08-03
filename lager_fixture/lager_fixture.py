@@ -29,9 +29,11 @@ HIGH = 1
 LOW = 0
 
 class LagerFixture:
-    def __init__(self, serial_port, debug=False):
+    def __init__(self, serial_port, debug=False, print_uart=False):
         self.debug = debug
+        self.print_uart = print_uart
         self.ser_queue = queue.Queue()
+        self.uart_queue = queue.Queue()
         
         self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
         self.reset()
@@ -50,6 +52,21 @@ class LagerFixture:
     def handle_GPIO_GET(self, frame):
         return [b > 0 for b in frame[1:]]
 
+    # def handle_UART_RX(self, frame):
+    #     channel = frame[1]
+    #     if self.print_uart:
+    #         print(f"UART {channel}: {frame[2:].decode('ascii')}")
+    #     else:
+    #         self.uart_queue.put(frame)
+
+    def handle_uart(self, frame):
+        channel = frame[1]
+        if self.print_uart:
+            line = frame[2:].decode('ascii').replace("\r\n", "")
+            print(f"UART {channel}: {line}")
+        else:
+            self.uart_queue.put(frame)
+    
     def send_cmd(self, cmd, data=None):
         output = bytearray()
         output.append(cmd)
@@ -65,15 +82,28 @@ class LagerFixture:
                 print(f"Sending {CMD_NAMES[cmd]} (No Data)")
         self.send_cmd(cmd, data)
         
-        frame = self.ser_queue.get(block=True, timeout=timeout)
-        if self.debug: print(f"\tReceived {frame}")
-        try:
-            func_name = "handle_" + CMD_NAMES[frame[0]]
-            func = getattr(self, func_name)
-            return func(frame)
-        except (KeyError, AttributeError):
-            if self.debug: print(f"\tGot frame: {frame}")
-            return frame
+        self.check_queue()
+
+    def check_queue(self, timeout=0.01):
+        
+        while True:
+            try:
+                frame = self.ser_queue.get(block=True, timeout=timeout)
+                if self.debug: print(f"\tReceived {frame}")
+
+                if frame[0] == UART_RX:
+                    self.handle_uart(frame)
+                    continue
+
+                try:
+                    func_name = "handle_" + CMD_NAMES[frame[0]]
+                    func = getattr(self, func_name)
+                    return func(frame)
+                except (KeyError, AttributeError):
+                    if self.debug: print(f"\tGot frame: {frame}")
+                    return frame
+            except queue.Empty:
+                return
 
     def got_frame(self, frame):
         self.ser_queue.put(frame)
@@ -104,7 +134,10 @@ class LagerFixture:
     def uart_rx(self, channel):
         resp = self.send_cmd_resp(UART_RX, [channel])
         if resp is not None:
-            return resp.decode("ascii")
+            try:
+                return resp.decode("ascii")
+            except:
+                return resp
 
     def uart_tx(self, channel, data):
         length = len(data)
