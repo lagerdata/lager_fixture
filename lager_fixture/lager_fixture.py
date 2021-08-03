@@ -101,11 +101,10 @@ class LagerFixture:
         resp = self.send_cmd_resp(SPI_XFER, [channel, ss, length] + data)
         return resp
 
-    def uart_rx(self, channel, timeout):
-        timeout_h = timeout >> 8
-        timeout_l = timeout & 0xFF
-        resp = self.send_cmd_resp(UART_RX, [channel, timeout_h, timeout_l], timeout=timeout)
-        return resp
+    def uart_rx(self, channel):
+        resp = self.send_cmd_resp(UART_RX, [channel])
+        if resp is not None:
+            return resp.decode("ascii")
 
     def uart_tx(self, channel, data):
         length = len(data)
