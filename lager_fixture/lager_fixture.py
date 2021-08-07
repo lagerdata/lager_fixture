@@ -33,7 +33,7 @@ class LagerFixture:
         self.debug = debug
         self.print_uart = print_uart
         self.ser_queue = queue.Queue()
-        self.uart_queue = queue.Queue()
+        self.uart_queue = [queue.Queue()] * 10
         
         self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
         self.reset()
@@ -65,7 +65,7 @@ class LagerFixture:
             line = frame[2:].decode('ascii').replace("\r\n", "")
             print(f"UART {channel}: {line}")
         else:
-            self.uart_queue.put(frame)
+            self.uart_queue[channel].put(frame[2:])
     
     def send_cmd(self, cmd, data=None):
         output = bytearray()
@@ -131,24 +131,20 @@ class LagerFixture:
         resp = self.send_cmd_resp(SPI_XFER, [channel, ss, length] + data)
         return resp
 
-    def uart_rx(self, channel):
-        resp = self.send_cmd_resp(UART_RX, [channel])
-        if resp is not None:
-            try:
-                return resp.decode("ascii")
-            except:
-                return resp
+    def uart_rx(self, channel, block=False, timeout=0.1):
+        return self.ser_queue[channel].get(block=block, timeout=timeout)
 
     def uart_tx(self, channel, data):
         length = len(data)
         self.send_cmd_resp(UART_TX, [channel, length] + [ord(c) for c in data])
 
-    def set_pwm(self, channel, freq, val):
+    def set_freq(self, channel, freq, dc):
         freq_h = freq >> 8
         freq_l = freq & 0xFF
+        val = (dc * 255) // 100
         self.send_cmd_resp(SET_PWM, [channel, freq_h, freq_l, val])
 
-    def get_tach(self, channel):
+    def get_freq(self, channel):
         resp = self.send_cmd_resp(GET_TACH, [channel])
         freq = resp[1] << 8 | resp[2]
         return freq
