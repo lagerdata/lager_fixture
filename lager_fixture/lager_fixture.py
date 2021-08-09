@@ -39,6 +39,7 @@ class LagerFixture:
         if serial_port is not None:
             self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
         else:
+            # Use default serial port if available
             try:
                 serial_port = "/dev/ttyACM0"
                 self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
