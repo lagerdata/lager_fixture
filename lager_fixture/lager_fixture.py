@@ -1,3 +1,4 @@
+import sys
 import queue
 import serial
 from .simple_hdlc import HDLC
@@ -29,13 +30,23 @@ HIGH = 1
 LOW = 0
 
 class LagerFixture:
-    def __init__(self, serial_port, debug=False, print_uart=False):
+    def __init__(self, serial_port=None, debug=False, print_uart=False):
         self.debug = debug
         self.print_uart = print_uart
         self.ser_queue = queue.Queue()
         self.uart_queue = [queue.Queue()] * 10
         
-        self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
+        if serial_port is not None:
+            self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
+        else:
+            try:
+                serial_port = "/dev/ttyACM0"
+                self.ser = serial.Serial(serial_port, 9600, timeout=0.1)
+            except serial.serialutil.SerialException:
+               print("ERROR: Failed to open connection to Lager Test Fixture. " \
+                     "Check that fixture is attached and that you're connecting with the correct TTY device path.")
+               sys.exit(1)
+
         self.reset()
 
     def reset(self):
