@@ -144,7 +144,10 @@ class LagerFixture:
         return resp
 
     def uart_rx(self, channel, block=False, timeout=0.1):
-        return self.uart_queue[channel].get(block=block, timeout=timeout)
+        try:
+            return self.uart_queue[channel].get(block=block, timeout=timeout)
+        except queue.Empty:
+            return None
 
     def uart_tx(self, channel, data):
         length = len(data)
