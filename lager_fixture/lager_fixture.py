@@ -1,5 +1,6 @@
 import sys
 import queue
+import time
 import serial
 from .simple_hdlc import HDLC
 
@@ -71,13 +72,13 @@ class LagerFixture:
     #     else:
     #         self.uart_queue.put(frame)
 
-    def handle_uart(self, frame):
+    def handle_UART_RX(self, frame):
         channel = frame[1]
         if self.print_uart:
             line = frame[2:].decode('ascii').replace("\r\n", "")
             print(f"UART {channel}: {line}")
-        else:
-            self.uart_queue[channel].put(frame[2:])
+
+        self.uart_queue[channel].put(frame[2:])
     
     def send_cmd(self, cmd, data=None):
         output = bytearray()
@@ -97,26 +98,28 @@ class LagerFixture:
         self.check_queue()
 
     def check_queue(self, timeout=0.01):
-        
-        while True:
+        start = time.time()
+
+        while time.time() - start < timeout:
             try:
-                frame = self.ser_queue.get(block=True, timeout=timeout)
+                frame = self.ser_queue.get(block=True, timeout=0.01)
                 if self.debug == True and self.print_uart == False:
                     print(f"\tReceived {frame}")
 
-                if frame[0] == UART_RX:
-                    self.handle_uart(frame)
-                    continue
+                # if frame[0] == UART_RX:
+                #     self.handle_uart(frame)
+                #     continue
 
                 try:
                     func_name = "handle_" + CMD_NAMES[frame[0]]
                     func = getattr(self, func_name)
-                    return func(frame)
+                    # return func(frame)
+                    func(frame)
                 except (KeyError, AttributeError):
                     if self.debug: print(f"\tGot frame: {frame}")
-                    return frame
+                    # return frame
             except queue.Empty:
-                return
+                continue
 
     def got_frame(self, frame):
         self.ser_queue.put(frame)
@@ -147,11 +150,19 @@ class LagerFixture:
         resp = self.send_cmd_resp(SPI_XFER, [channel, ss, length] + data)
         return resp
 
-    def uart_rx(self, channel, block=False, timeout=0.1):
-        try:
-            return self.uart_queue[channel].get(block=block, timeout=timeout)
-        except queue.Empty:
-            return None
+    def uart_rx(self, channel, timeout=0.1, decode=False):
+        self.check_queue(timeout=timeout)
+        lines = []
+        while True:
+            try:
+                line = self.uart_queue[channel].get(block=False)
+                if decode == True:
+                    line = line.decode("ascii")
+                elif decode:
+                    line = line.decode(decode)
+                lines.append(line)
+            except queue.Empty:
+                return lines
 
     def uart_tx(self, channel, data):
         length = len(data)
