@@ -120,6 +120,9 @@ class LagerFixture:
     def got_frame(self, frame):
         self.ser_queue.put(frame)
 
+    def ping(self):
+        self.send_cmd_resp(PING)
+
     def set_gpio_mode(self, pin, direction):
         self.send_cmd_resp(MODE, [pin, direction])
 
