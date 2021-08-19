@@ -101,7 +101,8 @@ class LagerFixture:
         while True:
             try:
                 frame = self.ser_queue.get(block=True, timeout=timeout)
-                if self.debug: print(f"\tReceived {frame}")
+                if self.debug == True and self.print_uart == False:
+                    print(f"\tReceived {frame}")
 
                 if frame[0] == UART_RX:
                     self.handle_uart(frame)
@@ -121,7 +122,7 @@ class LagerFixture:
         self.ser_queue.put(frame)
 
     def ping(self):
-        self.send_cmd_resp(PING)
+        return self.send_cmd_resp(PING)
 
     def set_gpio_mode(self, pin, direction):
         self.send_cmd_resp(MODE, [pin, direction])
