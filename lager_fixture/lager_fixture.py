@@ -95,7 +95,7 @@ class LagerFixture:
                 print(f"Sending {CMD_NAMES[cmd]} (No Data)")
         self.send_cmd(cmd, data)
         
-        self.check_queue()
+        return self.check_queue()
 
     def check_queue(self, timeout=0.01):
         start = time.time()
@@ -117,7 +117,7 @@ class LagerFixture:
                     func(frame)
                 except (KeyError, AttributeError):
                     if self.debug: print(f"\tGot frame: {frame}")
-                    # return frame
+                    return frame
             except queue.Empty:
                 continue
 
@@ -177,4 +177,6 @@ class LagerFixture:
     def get_freq(self, channel):
         resp = self.send_cmd_resp(GET_TACH, [channel])
         freq = resp[1] << 8 | resp[2]
-        return freq
+        dc = resp[3] << 8 | resp[4]
+        dc /= 100
+        return freq, dc
