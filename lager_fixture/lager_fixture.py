@@ -18,11 +18,13 @@ I2C_RX = 0x7B
 SPI_XFER = 0x8A
 SET_PWM = 0x9A
 GET_TACH = 0xAA
+REPROG = 0xBB
 
 CMD_NAMES = {0x01: "ACK", 0x02: "NACK", 0x0A: "PING", 0x0B: "GPIO_GET", \
              0x0C: "MODE", 0x0D: "COMM", 0x0E: "GPIO_SET", \
              0x5A: "UART_RX", 0x6A: "UART_TX", \
-             0x7A: "I2C_TX", 0x7B: "I2C_RX", 0x8A: "SPI_XFER", 0x9A: "SET_PWM", 0xAA: "GET_TACH" }
+             0x7A: "I2C_TX", 0x7B: "I2C_RX", 0x8A: "SPI_XFER", 0x9A: "SET_PWM", 0xAA: "GET_TACH",
+             0xBB: "REPROG" }
 
 INPUT = 0
 OUTPUT = 1
@@ -97,7 +99,7 @@ class LagerFixture:
         
         return self.check_queue()
 
-    def check_queue(self, timeout=0.01):
+    def check_queue(self, timeout=0.05):
         start = time.time()
 
         while time.time() - start < timeout:
@@ -123,6 +125,9 @@ class LagerFixture:
 
     def got_frame(self, frame):
         self.ser_queue.put(frame)
+
+    def _reprog(self):
+        self.send_cmd(REPROG)
 
     def ping(self):
         return self.send_cmd_resp(PING)
@@ -176,6 +181,9 @@ class LagerFixture:
 
     def get_freq(self, channel):
         resp = self.send_cmd_resp(GET_TACH, [channel])
+        if resp == None:
+            print("No data returned")
+            return None, None
         freq = resp[1] << 8 | resp[2]
         dc = resp[3] << 8 | resp[4]
         dc /= 100
