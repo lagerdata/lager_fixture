@@ -32,6 +32,12 @@ OUTPUT = 1
 HIGH = 1
 LOW = 0
 
+def _decode_bytes(inbytes):
+    line = ""
+    for b in inbytes:
+        line += chr(b)
+    return line.replace("\r\n", "")
+
 class LagerFixture:
     def __init__(self, serial_port=None, debug=False, print_uart=False):
         self.debug = debug
@@ -77,7 +83,7 @@ class LagerFixture:
     def handle_UART_RX(self, frame):
         channel = frame[1]
         if self.print_uart:
-            line = frame[2:].decode('ascii').replace("\r\n", "")
+            line = _decode_bytes(frame[2:])
             print(f"UART {channel}: {line}")
 
         self.uart_queue[channel].put(frame[2:])
