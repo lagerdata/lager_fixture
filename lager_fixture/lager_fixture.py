@@ -13,6 +13,7 @@ COMM = 0x0D
 GPIO_SET = 0x0E
 UART_RX = 0x5A
 UART_TX = 0x6A
+UART_PWR = 0x6B
 I2C_TX = 0x7A
 I2C_RX = 0x7B
 SPI_XFER = 0x8A
@@ -22,7 +23,7 @@ REPROG = 0xBB
 
 CMD_NAMES = {0x01: "ACK", 0x02: "NACK", 0x0A: "PING", 0x0B: "GPIO_GET", \
              0x0C: "MODE", 0x0D: "COMM", 0x0E: "GPIO_SET", \
-             0x5A: "UART_RX", 0x6A: "UART_TX", \
+             0x5A: "UART_RX", 0x6A: "UART_TX", 0x6B: "UART_PWR", \
              0x7A: "I2C_TX", 0x7B: "I2C_RX", 0x8A: "SPI_XFER", 0x9A: "SET_PWM", 0xAA: "GET_TACH",
              0xBB: "REPROG" }
 
@@ -178,6 +179,9 @@ class LagerFixture:
     def uart_tx(self, channel, data):
         length = len(data)
         self.send_cmd_resp(UART_TX, [channel, length] + [ord(c) for c in data])
+
+    def uart_pwr(self, channel, state):
+        self.send_cmd_resp(UART_PWR, [channel, state])
 
     def set_freq(self, channel, freq, dc):
         freq_h = freq >> 8
